@@ -1,0 +1,394 @@
+   0  $accept : start_point $end
+
+   1  $$1 :
+
+   2  start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN CONSTANT ';' '}'
+
+   3  xdecls :
+   4         | decls
+
+   5  decls : decl
+   6        | decls decl
+
+   7  decl : TYPESPEC notype_declarator ';'
+
+   8  notype_declarator : IDENTIFIER '=' INT_CONSTANT
+
+   9  INT_CONSTANT : CONSTANT
+
+  10  stmts : stmt
+  11        | stmts stmt
+
+  12  stmt : simple_stmt
+
+  13  simple_stmt : IDENTIFIER '=' add_expr ';'
+
+  14  add_expr : mul_expr
+  15           | add_expr '+' mul_expr
+  16           | add_expr '-' mul_expr
+
+  17  mul_expr : primary_expr
+  18           | mul_expr '*' primary_expr
+  19           | mul_expr '/' primary_expr
+
+  20  primary_expr : IDENTIFIER
+  21               | CONSTANT
+
+  22  primary : IDENTIFIER
+  23          | CONSTANT
+
+state 0
+	$accept : . start_point $end  (0)
+
+	TYPESPEC  shift 1
+	.  error
+
+	start_point  goto 2
+
+
+state 1
+	start_point : TYPESPEC . IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN CONSTANT ';' '}'  (2)
+
+	IDENTIFIER  shift 3
+	.  error
+
+
+state 2
+	$accept : start_point . $end  (0)
+
+	$end  accept
+
+
+state 3
+	start_point : TYPESPEC IDENTIFIER . $$1 '(' ')' '{' xdecls stmts RETURN CONSTANT ';' '}'  (2)
+	$$1 : .  (1)
+
+	.  reduce 1
+
+	$$1  goto 4
+
+
+state 4
+	start_point : TYPESPEC IDENTIFIER $$1 . '(' ')' '{' xdecls stmts RETURN CONSTANT ';' '}'  (2)
+
+	'('  shift 5
+	.  error
+
+
+state 5
+	start_point : TYPESPEC IDENTIFIER $$1 '(' . ')' '{' xdecls stmts RETURN CONSTANT ';' '}'  (2)
+
+	')'  shift 6
+	.  error
+
+
+state 6
+	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' . '{' xdecls stmts RETURN CONSTANT ';' '}'  (2)
+
+	'{'  shift 7
+	.  error
+
+
+state 7
+	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' . xdecls stmts RETURN CONSTANT ';' '}'  (2)
+	xdecls : .  (3)
+
+	TYPESPEC  shift 8
+	IDENTIFIER  reduce 3
+
+	xdecls  goto 9
+	decls  goto 10
+	decl  goto 11
+
+
+state 8
+	decl : TYPESPEC . notype_declarator ';'  (7)
+
+	IDENTIFIER  shift 12
+	.  error
+
+	notype_declarator  goto 13
+
+
+state 9
+	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls . stmts RETURN CONSTANT ';' '}'  (2)
+
+	IDENTIFIER  shift 14
+	.  error
+
+	simple_stmt  goto 15
+	stmts  goto 16
+	stmt  goto 17
+
+
+state 10
+	xdecls : decls .  (4)
+	decls : decls . decl  (6)
+
+	TYPESPEC  shift 8
+	IDENTIFIER  reduce 4
+
+	decl  goto 18
+
+
+state 11
+	decls : decl .  (5)
+
+	.  reduce 5
+
+
+state 12
+	notype_declarator : IDENTIFIER . '=' INT_CONSTANT  (8)
+
+	'='  shift 19
+	.  error
+
+
+state 13
+	decl : TYPESPEC notype_declarator . ';'  (7)
+
+	';'  shift 20
+	.  error
+
+
+state 14
+	simple_stmt : IDENTIFIER . '=' add_expr ';'  (13)
+
+	'='  shift 21
+	.  error
+
+
+state 15
+	stmt : simple_stmt .  (12)
+
+	.  reduce 12
+
+
+state 16
+	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts . RETURN CONSTANT ';' '}'  (2)
+	stmts : stmts . stmt  (11)
+
+	IDENTIFIER  shift 14
+	RETURN  shift 22
+	.  error
+
+	simple_stmt  goto 15
+	stmt  goto 23
+
+
+state 17
+	stmts : stmt .  (10)
+
+	.  reduce 10
+
+
+state 18
+	decls : decls decl .  (6)
+
+	.  reduce 6
+
+
+state 19
+	notype_declarator : IDENTIFIER '=' . INT_CONSTANT  (8)
+
+	CONSTANT  shift 24
+	.  error
+
+	INT_CONSTANT  goto 25
+
+
+state 20
+	decl : TYPESPEC notype_declarator ';' .  (7)
+
+	.  reduce 7
+
+
+state 21
+	simple_stmt : IDENTIFIER '=' . add_expr ';'  (13)
+
+	IDENTIFIER  shift 26
+	CONSTANT  shift 27
+	.  error
+
+	add_expr  goto 28
+	mul_expr  goto 29
+	primary_expr  goto 30
+
+
+state 22
+	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN . CONSTANT ';' '}'  (2)
+
+	CONSTANT  shift 31
+	.  error
+
+
+state 23
+	stmts : stmts stmt .  (11)
+
+	.  reduce 11
+
+
+state 24
+	INT_CONSTANT : CONSTANT .  (9)
+
+	.  reduce 9
+
+
+state 25
+	notype_declarator : IDENTIFIER '=' INT_CONSTANT .  (8)
+
+	.  reduce 8
+
+
+state 26
+	primary_expr : IDENTIFIER .  (20)
+
+	.  reduce 20
+
+
+state 27
+	primary_expr : CONSTANT .  (21)
+
+	.  reduce 21
+
+
+state 28
+	simple_stmt : IDENTIFIER '=' add_expr . ';'  (13)
+	add_expr : add_expr . '+' mul_expr  (15)
+	add_expr : add_expr . '-' mul_expr  (16)
+
+	';'  shift 32
+	'+'  shift 33
+	'-'  shift 34
+	.  error
+
+
+state 29
+	add_expr : mul_expr .  (14)
+	mul_expr : mul_expr . '*' primary_expr  (18)
+	mul_expr : mul_expr . '/' primary_expr  (19)
+
+	'*'  shift 35
+	'/'  shift 36
+	';'  reduce 14
+	'+'  reduce 14
+	'-'  reduce 14
+
+
+state 30
+	mul_expr : primary_expr .  (17)
+
+	.  reduce 17
+
+
+state 31
+	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN CONSTANT . ';' '}'  (2)
+
+	';'  shift 37
+	.  error
+
+
+state 32
+	simple_stmt : IDENTIFIER '=' add_expr ';' .  (13)
+
+	.  reduce 13
+
+
+state 33
+	add_expr : add_expr '+' . mul_expr  (15)
+
+	IDENTIFIER  shift 26
+	CONSTANT  shift 27
+	.  error
+
+	mul_expr  goto 38
+	primary_expr  goto 30
+
+
+state 34
+	add_expr : add_expr '-' . mul_expr  (16)
+
+	IDENTIFIER  shift 26
+	CONSTANT  shift 27
+	.  error
+
+	mul_expr  goto 39
+	primary_expr  goto 30
+
+
+state 35
+	mul_expr : mul_expr '*' . primary_expr  (18)
+
+	IDENTIFIER  shift 26
+	CONSTANT  shift 27
+	.  error
+
+	primary_expr  goto 40
+
+
+state 36
+	mul_expr : mul_expr '/' . primary_expr  (19)
+
+	IDENTIFIER  shift 26
+	CONSTANT  shift 27
+	.  error
+
+	primary_expr  goto 41
+
+
+state 37
+	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN CONSTANT ';' . '}'  (2)
+
+	'}'  shift 42
+	.  error
+
+
+state 38
+	add_expr : add_expr '+' mul_expr .  (15)
+	mul_expr : mul_expr . '*' primary_expr  (18)
+	mul_expr : mul_expr . '/' primary_expr  (19)
+
+	'*'  shift 35
+	'/'  shift 36
+	';'  reduce 15
+	'+'  reduce 15
+	'-'  reduce 15
+
+
+state 39
+	add_expr : add_expr '-' mul_expr .  (16)
+	mul_expr : mul_expr . '*' primary_expr  (18)
+	mul_expr : mul_expr . '/' primary_expr  (19)
+
+	'*'  shift 35
+	'/'  shift 36
+	';'  reduce 16
+	'+'  reduce 16
+	'-'  reduce 16
+
+
+state 40
+	mul_expr : mul_expr '*' primary_expr .  (18)
+
+	.  reduce 18
+
+
+state 41
+	mul_expr : mul_expr '/' primary_expr .  (19)
+
+	.  reduce 19
+
+
+state 42
+	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN CONSTANT ';' '}' .  (2)
+
+	.  reduce 2
+
+
+Rules never reduced:
+	primary : IDENTIFIER  (22)
+	primary : CONSTANT  (23)
+
+
+70 terminals, 15 nonterminals
+24 grammar rules, 43 states

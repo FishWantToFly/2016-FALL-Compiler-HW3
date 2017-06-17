@@ -1,0 +1,25 @@
+FLASH1 0x0 0x20000 ; LMA address base 0x0, max_size=128K
+{
+    EFLASH 0x0 0x20000 ; VMA address base 0x0
+    {
+        VAR _ILM_BASE = 0x0 ; ILM base address
+        * (.nds32_init)
+        * (+RO-CODE)
+    }
+}
+FLASH2 +0 ALIGN 32 0x4000 ; Force LMA on 32 bytes aligned address, max_size=16K
+{
+    EDLM 0x400000 0x4000 ; VMA address base 0x400000
+    {
+        VAR _DLM_BASE = 0x400000 ; DLM base address
+        LOADADDR NEXT __data_lmastart
+        ADDR NEXT __data_start
+        * (+RO-DATA LMA_FORCE_ALIGN)
+        * (+RW LMA_FORCE_ALIGN)
+        ADDR __data_end
+
+        * (+ZI)
+        STACK = 0x404000
+        VAR _DLM_END =  0x403FF8 ;
+    }
+}
