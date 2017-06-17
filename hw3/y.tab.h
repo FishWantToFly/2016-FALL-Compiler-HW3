@@ -43,12 +43,28 @@
 #define arrays 299
 #define array 300
 #define ASSIGN 301
-#define OROR 302
-#define ANDAND 303
-#define EQCOMPARE 304
-#define ARITHCOMPARE 305
-#define DOUBLEDOUBLE 306
-#define UNARY 307
+#define PLUSPLUS_OP 302
+#define MINUSMINUS_OP 303
+#define MUL_OP 304
+#define DIV_OP 305
+#define MOD_OP 306
+#define MINUS_OP 307
+#define PLUS_OP 308
+#define LT_OP 309
+#define LE_OP 310
+#define GT_OP 311
+#define GE_OP 312
+#define EQUAL_OP 313
+#define NEQUAL_OP 314
+#define NOT_OP 315
+#define AND_OP 316
+#define OR_OP 317
+#define OROR 318
+#define ANDAND 319
+#define EQCOMPARE 320
+#define ARITHCOMPARE 321
+#define DOUBLEDOUBLE 322
+#define UNARY 323
 #ifdef YYSTYPE
 #undef  YYSTYPE_IS_DECLARED
 #define YYSTYPE_IS_DECLARED 1

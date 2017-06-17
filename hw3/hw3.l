@@ -182,12 +182,6 @@ strange			[\\][\"]
 				return('%');
 			}
 			
-"!"			{
-				if (token_condition == 1)
-					fprintf(stdout, "#op:%s\n", yytext);
-				insert_printline(yytext, strlen(yytext));
-				return('!');
-			}			
 
 
 ";"		{
@@ -254,39 +248,51 @@ strange			[\\][\"]
 			}	
 
 
-[<|>]=?			{ if (token_condition == 1)
+">="			{ if (token_condition == 1)
 					fprintf(stdout, "#op:%s\n", yytext);
 				insert_printline(yytext, strlen(yytext));
-                          return(ARITHCOMPARE);         }
+                          return(GE_OP);         }
+						
+"<="			{ if (token_condition == 1)
+					fprintf(stdout, "#op:%s\n", yytext);
+				insert_printline(yytext, strlen(yytext));
+                          return(LE_OP);         }
+						  
 						  
 "=="			{ if (token_condition == 1)
 					fprintf(stdout, "#op:%s\n", yytext);
 				insert_printline(yytext, strlen(yytext));
-                          return(ARITHCOMPARE);         }
+                          return(EQUAL_OP);         }
+						  
 "!="			{ if (token_condition == 1)
 					fprintf(stdout, "#op:%s\n", yytext);
 				insert_printline(yytext, strlen(yytext));
-                          return(ARITHCOMPARE);         }
+                          return(NEQUAL_OP);         }
 						  
 "&&"			{ if (token_condition == 1)
 					fprintf(stdout, "#op:%s\n", yytext);
 				insert_printline(yytext, strlen(yytext));
-                          return(ARITHCOMPARE);         }
+                          return(AND_OP);         }
 						  
 "||"			{ if (token_condition == 1)
 					fprintf(stdout, "#op:%s\n", yytext);
 				insert_printline(yytext, strlen(yytext));
-                          return(ARITHCOMPARE);         }
+                          return(OR_OP);         }
 			
 "++"			{ if (token_condition == 1)
 					fprintf(stdout, "#op:%s\n", yytext);
 				insert_printline(yytext, strlen(yytext));
-                          return(DOUBLEDOUBLE);         }
+                          return(PLUSPLUS_OP);         }
 
 "--"			{ if (token_condition == 1)
 					fprintf(stdout, "#op:%s\n", yytext);
 				insert_printline(yytext, strlen(yytext));
-                          return(DOUBLEDOUBLE);         }
+                          return(MINUSMINUS_OP);         }
+						  
+"!"				{ if (token_condition == 1)
+					fprintf(stdout, "#op:%s\n", yytext);
+				insert_printline(yytext, strlen(yytext));
+                          return(NOT_OP);         }
 
 true			{ if (token_condition == 1)
 					fprintf(stdout, "#key:%s\n", yytext);

@@ -16,26 +16,60 @@
 
    9  INT_CONSTANT : CONSTANT
 
-  10  stmts : stmt
-  11        | stmts stmt
+  10  stmt_list :
+  11            | stmts
 
-  12  stmt : simple_stmt
+  12  stmts : stmt
+  13        | stmts stmt
 
-  13  simple_stmt : IDENTIFIER '=' add_expr ';'
+  14  stmt : simple_stmt
+  15       | IF_Statement
 
-  14  add_expr : mul_expr
-  15           | add_expr '+' mul_expr
-  16           | add_expr '-' mul_expr
+  16  $$2 :
 
-  17  mul_expr : primary_expr
-  18           | mul_expr '*' primary_expr
-  19           | mul_expr '/' primary_expr
+  17  IF_Statement : IF '(' Expression ')' $$2 Compound_Statement Selection_Statement_Tail
 
-  20  primary_expr : IDENTIFIER
-  21               | CONSTANT
+  18  Selection_Statement_Tail :
 
-  22  primary : IDENTIFIER
-  23          | CONSTANT
+  19  $$3 :
+
+  20  Selection_Statement_Tail : ELSE $$3 Compound_Statement
+
+  21  $$4 :
+
+  22  $$5 :
+
+  23  Compound_Statement : '{' $$4 xdecls $$5 stmt_list '}'
+
+  24  Expression : Logical_Expression
+
+  25  Logical_Expression : add_expr
+  26                     | Logical_Expression OR_OP add_expr
+  27                     | Logical_Expression AND_OP add_expr
+  28                     | NOT_OP Logical_Expression
+  29                     | Logical_Expression '<' add_expr
+  30                     | Logical_Expression LE_OP add_expr
+  31                     | Logical_Expression '>' add_expr
+  32                     | Logical_Expression GE_OP add_expr
+  33                     | Logical_Expression EQUAL_OP add_expr
+  34                     | Logical_Expression NEQUAL_OP add_expr
+
+  35  simple_stmt : IDENTIFIER '=' add_expr ';'
+
+  36  add_expr : mul_expr
+  37           | add_expr '+' mul_expr
+  38           | add_expr '-' mul_expr
+
+  39  mul_expr : primary_expr
+  40           | mul_expr '*' primary_expr
+  41           | mul_expr '/' primary_expr
+
+  42  primary_expr : IDENTIFIER
+  43               | CONSTANT
+  44               | '(' Expression ')'
+
+  45  primary : IDENTIFIER
+  46          | CONSTANT
 
 state 0
 	$accept : . start_point $end  (0)
@@ -95,6 +129,7 @@ state 7
 
 	TYPESPEC  shift 8
 	IDENTIFIER  reduce 3
+	IF  reduce 3
 
 	xdecls  goto 9
 	decls  goto 10
@@ -114,11 +149,13 @@ state 9
 	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls . stmts RETURN CONSTANT ';' '}'  (2)
 
 	IDENTIFIER  shift 14
+	IF  shift 15
 	.  error
 
-	simple_stmt  goto 15
-	stmts  goto 16
-	stmt  goto 17
+	simple_stmt  goto 16
+	stmts  goto 17
+	stmt  goto 18
+	IF_Statement  goto 19
 
 
 state 10
@@ -127,8 +164,10 @@ state 10
 
 	TYPESPEC  shift 8
 	IDENTIFIER  reduce 4
+	IF  reduce 4
+	'}'  reduce 4
 
-	decl  goto 18
+	decl  goto 20
 
 
 state 11
@@ -140,255 +179,813 @@ state 11
 state 12
 	notype_declarator : IDENTIFIER . '=' INT_CONSTANT  (8)
 
-	'='  shift 19
+	'='  shift 21
 	.  error
 
 
 state 13
 	decl : TYPESPEC notype_declarator . ';'  (7)
 
-	';'  shift 20
+	';'  shift 22
 	.  error
 
 
 state 14
-	simple_stmt : IDENTIFIER . '=' add_expr ';'  (13)
+	simple_stmt : IDENTIFIER . '=' add_expr ';'  (35)
 
-	'='  shift 21
+	'='  shift 23
 	.  error
 
 
 state 15
-	stmt : simple_stmt .  (12)
+	IF_Statement : IF . '(' Expression ')' $$2 Compound_Statement Selection_Statement_Tail  (17)
+
+	'('  shift 24
+	.  error
+
+
+state 16
+	stmt : simple_stmt .  (14)
+
+	.  reduce 14
+
+
+state 17
+	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts . RETURN CONSTANT ';' '}'  (2)
+	stmts : stmts . stmt  (13)
+
+	IDENTIFIER  shift 14
+	IF  shift 15
+	RETURN  shift 25
+	.  error
+
+	simple_stmt  goto 16
+	stmt  goto 26
+	IF_Statement  goto 19
+
+
+state 18
+	stmts : stmt .  (12)
 
 	.  reduce 12
 
 
-state 16
-	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts . RETURN CONSTANT ';' '}'  (2)
-	stmts : stmts . stmt  (11)
+state 19
+	stmt : IF_Statement .  (15)
 
-	IDENTIFIER  shift 14
-	RETURN  shift 22
-	.  error
-
-	simple_stmt  goto 15
-	stmt  goto 23
+	.  reduce 15
 
 
-state 17
-	stmts : stmt .  (10)
-
-	.  reduce 10
-
-
-state 18
+state 20
 	decls : decls decl .  (6)
 
 	.  reduce 6
 
 
-state 19
+state 21
 	notype_declarator : IDENTIFIER '=' . INT_CONSTANT  (8)
 
-	CONSTANT  shift 24
+	CONSTANT  shift 27
 	.  error
 
-	INT_CONSTANT  goto 25
+	INT_CONSTANT  goto 28
 
 
-state 20
+state 22
 	decl : TYPESPEC notype_declarator ';' .  (7)
 
 	.  reduce 7
 
 
-state 21
-	simple_stmt : IDENTIFIER '=' . add_expr ';'  (13)
-
-	IDENTIFIER  shift 26
-	CONSTANT  shift 27
-	.  error
-
-	add_expr  goto 28
-	mul_expr  goto 29
-	primary_expr  goto 30
-
-
-state 22
-	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN . CONSTANT ';' '}'  (2)
-
-	CONSTANT  shift 31
-	.  error
-
-
 state 23
-	stmts : stmts stmt .  (11)
+	simple_stmt : IDENTIFIER '=' . add_expr ';'  (35)
 
-	.  reduce 11
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	add_expr  goto 32
+	mul_expr  goto 33
+	primary_expr  goto 34
 
 
 state 24
+	IF_Statement : IF '(' . Expression ')' $$2 Compound_Statement Selection_Statement_Tail  (17)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	NOT_OP  shift 35
+	'('  shift 31
+	.  error
+
+	add_expr  goto 36
+	mul_expr  goto 33
+	primary_expr  goto 34
+	Expression  goto 37
+	Logical_Expression  goto 38
+
+
+state 25
+	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN . CONSTANT ';' '}'  (2)
+
+	CONSTANT  shift 39
+	.  error
+
+
+state 26
+	stmts : stmts stmt .  (13)
+
+	.  reduce 13
+
+
+state 27
 	INT_CONSTANT : CONSTANT .  (9)
 
 	.  reduce 9
 
 
-state 25
+state 28
 	notype_declarator : IDENTIFIER '=' INT_CONSTANT .  (8)
 
 	.  reduce 8
 
 
-state 26
-	primary_expr : IDENTIFIER .  (20)
-
-	.  reduce 20
-
-
-state 27
-	primary_expr : CONSTANT .  (21)
-
-	.  reduce 21
-
-
-state 28
-	simple_stmt : IDENTIFIER '=' add_expr . ';'  (13)
-	add_expr : add_expr . '+' mul_expr  (15)
-	add_expr : add_expr . '-' mul_expr  (16)
-
-	';'  shift 32
-	'+'  shift 33
-	'-'  shift 34
-	.  error
-
-
 state 29
-	add_expr : mul_expr .  (14)
-	mul_expr : mul_expr . '*' primary_expr  (18)
-	mul_expr : mul_expr . '/' primary_expr  (19)
+	primary_expr : IDENTIFIER .  (42)
 
-	'*'  shift 35
-	'/'  shift 36
-	';'  reduce 14
-	'+'  reduce 14
-	'-'  reduce 14
+	.  reduce 42
 
 
 state 30
-	mul_expr : primary_expr .  (17)
+	primary_expr : CONSTANT .  (43)
 
-	.  reduce 17
+	.  reduce 43
 
 
 state 31
-	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN CONSTANT . ';' '}'  (2)
+	primary_expr : '(' . Expression ')'  (44)
 
-	';'  shift 37
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	NOT_OP  shift 35
+	'('  shift 31
 	.  error
+
+	add_expr  goto 36
+	mul_expr  goto 33
+	primary_expr  goto 34
+	Expression  goto 40
+	Logical_Expression  goto 38
 
 
 state 32
-	simple_stmt : IDENTIFIER '=' add_expr ';' .  (13)
+	simple_stmt : IDENTIFIER '=' add_expr . ';'  (35)
+	add_expr : add_expr . '+' mul_expr  (37)
+	add_expr : add_expr . '-' mul_expr  (38)
 
-	.  reduce 13
+	';'  shift 41
+	'+'  shift 42
+	'-'  shift 43
+	.  error
 
 
 state 33
-	add_expr : add_expr '+' . mul_expr  (15)
+	add_expr : mul_expr .  (36)
+	mul_expr : mul_expr . '*' primary_expr  (40)
+	mul_expr : mul_expr . '/' primary_expr  (41)
 
-	IDENTIFIER  shift 26
-	CONSTANT  shift 27
-	.  error
-
-	mul_expr  goto 38
-	primary_expr  goto 30
+	'*'  shift 44
+	'/'  shift 45
+	';'  reduce 36
+	LE_OP  reduce 36
+	GE_OP  reduce 36
+	EQUAL_OP  reduce 36
+	NEQUAL_OP  reduce 36
+	AND_OP  reduce 36
+	OR_OP  reduce 36
+	'>'  reduce 36
+	'<'  reduce 36
+	'+'  reduce 36
+	'-'  reduce 36
+	')'  reduce 36
 
 
 state 34
-	add_expr : add_expr '-' . mul_expr  (16)
+	mul_expr : primary_expr .  (39)
 
-	IDENTIFIER  shift 26
-	CONSTANT  shift 27
-	.  error
-
-	mul_expr  goto 39
-	primary_expr  goto 30
+	.  reduce 39
 
 
 state 35
-	mul_expr : mul_expr '*' . primary_expr  (18)
+	Logical_Expression : NOT_OP . Logical_Expression  (28)
 
-	IDENTIFIER  shift 26
-	CONSTANT  shift 27
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	NOT_OP  shift 35
+	'('  shift 31
 	.  error
 
-	primary_expr  goto 40
+	add_expr  goto 36
+	mul_expr  goto 33
+	primary_expr  goto 34
+	Logical_Expression  goto 46
 
 
 state 36
-	mul_expr : mul_expr '/' . primary_expr  (19)
+	Logical_Expression : add_expr .  (25)
+	add_expr : add_expr . '+' mul_expr  (37)
+	add_expr : add_expr . '-' mul_expr  (38)
 
-	IDENTIFIER  shift 26
-	CONSTANT  shift 27
-	.  error
-
-	primary_expr  goto 41
+	'+'  shift 42
+	'-'  shift 43
+	LE_OP  reduce 25
+	GE_OP  reduce 25
+	EQUAL_OP  reduce 25
+	NEQUAL_OP  reduce 25
+	AND_OP  reduce 25
+	OR_OP  reduce 25
+	'>'  reduce 25
+	'<'  reduce 25
+	')'  reduce 25
 
 
 state 37
-	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN CONSTANT ';' . '}'  (2)
+	IF_Statement : IF '(' Expression . ')' $$2 Compound_Statement Selection_Statement_Tail  (17)
 
-	'}'  shift 42
+	')'  shift 47
 	.  error
 
 
 state 38
-	add_expr : add_expr '+' mul_expr .  (15)
-	mul_expr : mul_expr . '*' primary_expr  (18)
-	mul_expr : mul_expr . '/' primary_expr  (19)
+	Expression : Logical_Expression .  (24)
+	Logical_Expression : Logical_Expression . OR_OP add_expr  (26)
+	Logical_Expression : Logical_Expression . AND_OP add_expr  (27)
+	Logical_Expression : Logical_Expression . '<' add_expr  (29)
+	Logical_Expression : Logical_Expression . LE_OP add_expr  (30)
+	Logical_Expression : Logical_Expression . '>' add_expr  (31)
+	Logical_Expression : Logical_Expression . GE_OP add_expr  (32)
+	Logical_Expression : Logical_Expression . EQUAL_OP add_expr  (33)
+	Logical_Expression : Logical_Expression . NEQUAL_OP add_expr  (34)
 
-	'*'  shift 35
-	'/'  shift 36
-	';'  reduce 15
-	'+'  reduce 15
-	'-'  reduce 15
+	LE_OP  shift 48
+	GE_OP  shift 49
+	EQUAL_OP  shift 50
+	NEQUAL_OP  shift 51
+	AND_OP  shift 52
+	OR_OP  shift 53
+	'>'  shift 54
+	'<'  shift 55
+	')'  reduce 24
 
 
 state 39
-	add_expr : add_expr '-' mul_expr .  (16)
-	mul_expr : mul_expr . '*' primary_expr  (18)
-	mul_expr : mul_expr . '/' primary_expr  (19)
+	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN CONSTANT . ';' '}'  (2)
 
-	'*'  shift 35
-	'/'  shift 36
-	';'  reduce 16
-	'+'  reduce 16
-	'-'  reduce 16
+	';'  shift 56
+	.  error
 
 
 state 40
-	mul_expr : mul_expr '*' primary_expr .  (18)
+	primary_expr : '(' Expression . ')'  (44)
 
-	.  reduce 18
+	')'  shift 57
+	.  error
 
 
 state 41
-	mul_expr : mul_expr '/' primary_expr .  (19)
+	simple_stmt : IDENTIFIER '=' add_expr ';' .  (35)
 
-	.  reduce 19
+	.  reduce 35
 
 
 state 42
+	add_expr : add_expr '+' . mul_expr  (37)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	mul_expr  goto 58
+	primary_expr  goto 34
+
+
+state 43
+	add_expr : add_expr '-' . mul_expr  (38)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	mul_expr  goto 59
+	primary_expr  goto 34
+
+
+state 44
+	mul_expr : mul_expr '*' . primary_expr  (40)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	primary_expr  goto 60
+
+
+state 45
+	mul_expr : mul_expr '/' . primary_expr  (41)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	primary_expr  goto 61
+
+
+state 46
+	Logical_Expression : Logical_Expression . OR_OP add_expr  (26)
+	Logical_Expression : Logical_Expression . AND_OP add_expr  (27)
+	Logical_Expression : NOT_OP Logical_Expression .  (28)
+	Logical_Expression : Logical_Expression . '<' add_expr  (29)
+	Logical_Expression : Logical_Expression . LE_OP add_expr  (30)
+	Logical_Expression : Logical_Expression . '>' add_expr  (31)
+	Logical_Expression : Logical_Expression . GE_OP add_expr  (32)
+	Logical_Expression : Logical_Expression . EQUAL_OP add_expr  (33)
+	Logical_Expression : Logical_Expression . NEQUAL_OP add_expr  (34)
+
+	AND_OP  shift 52
+	OR_OP  shift 53
+	'>'  shift 54
+	'<'  shift 55
+	LE_OP  reduce 28
+	GE_OP  reduce 28
+	EQUAL_OP  reduce 28
+	NEQUAL_OP  reduce 28
+	')'  reduce 28
+
+
+state 47
+	IF_Statement : IF '(' Expression ')' . $$2 Compound_Statement Selection_Statement_Tail  (17)
+	$$2 : .  (16)
+
+	.  reduce 16
+
+	$$2  goto 62
+
+
+state 48
+	Logical_Expression : Logical_Expression LE_OP . add_expr  (30)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	add_expr  goto 63
+	mul_expr  goto 33
+	primary_expr  goto 34
+
+
+state 49
+	Logical_Expression : Logical_Expression GE_OP . add_expr  (32)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	add_expr  goto 64
+	mul_expr  goto 33
+	primary_expr  goto 34
+
+
+state 50
+	Logical_Expression : Logical_Expression EQUAL_OP . add_expr  (33)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	add_expr  goto 65
+	mul_expr  goto 33
+	primary_expr  goto 34
+
+
+state 51
+	Logical_Expression : Logical_Expression NEQUAL_OP . add_expr  (34)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	add_expr  goto 66
+	mul_expr  goto 33
+	primary_expr  goto 34
+
+
+state 52
+	Logical_Expression : Logical_Expression AND_OP . add_expr  (27)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	add_expr  goto 67
+	mul_expr  goto 33
+	primary_expr  goto 34
+
+
+state 53
+	Logical_Expression : Logical_Expression OR_OP . add_expr  (26)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	add_expr  goto 68
+	mul_expr  goto 33
+	primary_expr  goto 34
+
+
+state 54
+	Logical_Expression : Logical_Expression '>' . add_expr  (31)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	add_expr  goto 69
+	mul_expr  goto 33
+	primary_expr  goto 34
+
+
+state 55
+	Logical_Expression : Logical_Expression '<' . add_expr  (29)
+
+	IDENTIFIER  shift 29
+	CONSTANT  shift 30
+	'('  shift 31
+	.  error
+
+	add_expr  goto 70
+	mul_expr  goto 33
+	primary_expr  goto 34
+
+
+state 56
+	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN CONSTANT ';' . '}'  (2)
+
+	'}'  shift 71
+	.  error
+
+
+state 57
+	primary_expr : '(' Expression ')' .  (44)
+
+	.  reduce 44
+
+
+state 58
+	add_expr : add_expr '+' mul_expr .  (37)
+	mul_expr : mul_expr . '*' primary_expr  (40)
+	mul_expr : mul_expr . '/' primary_expr  (41)
+
+	'*'  shift 44
+	'/'  shift 45
+	';'  reduce 37
+	LE_OP  reduce 37
+	GE_OP  reduce 37
+	EQUAL_OP  reduce 37
+	NEQUAL_OP  reduce 37
+	AND_OP  reduce 37
+	OR_OP  reduce 37
+	'>'  reduce 37
+	'<'  reduce 37
+	'+'  reduce 37
+	'-'  reduce 37
+	')'  reduce 37
+
+
+state 59
+	add_expr : add_expr '-' mul_expr .  (38)
+	mul_expr : mul_expr . '*' primary_expr  (40)
+	mul_expr : mul_expr . '/' primary_expr  (41)
+
+	'*'  shift 44
+	'/'  shift 45
+	';'  reduce 38
+	LE_OP  reduce 38
+	GE_OP  reduce 38
+	EQUAL_OP  reduce 38
+	NEQUAL_OP  reduce 38
+	AND_OP  reduce 38
+	OR_OP  reduce 38
+	'>'  reduce 38
+	'<'  reduce 38
+	'+'  reduce 38
+	'-'  reduce 38
+	')'  reduce 38
+
+
+state 60
+	mul_expr : mul_expr '*' primary_expr .  (40)
+
+	.  reduce 40
+
+
+state 61
+	mul_expr : mul_expr '/' primary_expr .  (41)
+
+	.  reduce 41
+
+
+state 62
+	IF_Statement : IF '(' Expression ')' $$2 . Compound_Statement Selection_Statement_Tail  (17)
+
+	'{'  shift 72
+	.  error
+
+	Compound_Statement  goto 73
+
+
+state 63
+	Logical_Expression : Logical_Expression LE_OP add_expr .  (30)
+	add_expr : add_expr . '+' mul_expr  (37)
+	add_expr : add_expr . '-' mul_expr  (38)
+
+	'+'  shift 42
+	'-'  shift 43
+	LE_OP  reduce 30
+	GE_OP  reduce 30
+	EQUAL_OP  reduce 30
+	NEQUAL_OP  reduce 30
+	AND_OP  reduce 30
+	OR_OP  reduce 30
+	'>'  reduce 30
+	'<'  reduce 30
+	')'  reduce 30
+
+
+state 64
+	Logical_Expression : Logical_Expression GE_OP add_expr .  (32)
+	add_expr : add_expr . '+' mul_expr  (37)
+	add_expr : add_expr . '-' mul_expr  (38)
+
+	'+'  shift 42
+	'-'  shift 43
+	LE_OP  reduce 32
+	GE_OP  reduce 32
+	EQUAL_OP  reduce 32
+	NEQUAL_OP  reduce 32
+	AND_OP  reduce 32
+	OR_OP  reduce 32
+	'>'  reduce 32
+	'<'  reduce 32
+	')'  reduce 32
+
+
+state 65
+	Logical_Expression : Logical_Expression EQUAL_OP add_expr .  (33)
+	add_expr : add_expr . '+' mul_expr  (37)
+	add_expr : add_expr . '-' mul_expr  (38)
+
+	'+'  shift 42
+	'-'  shift 43
+	LE_OP  reduce 33
+	GE_OP  reduce 33
+	EQUAL_OP  reduce 33
+	NEQUAL_OP  reduce 33
+	AND_OP  reduce 33
+	OR_OP  reduce 33
+	'>'  reduce 33
+	'<'  reduce 33
+	')'  reduce 33
+
+
+state 66
+	Logical_Expression : Logical_Expression NEQUAL_OP add_expr .  (34)
+	add_expr : add_expr . '+' mul_expr  (37)
+	add_expr : add_expr . '-' mul_expr  (38)
+
+	'+'  shift 42
+	'-'  shift 43
+	LE_OP  reduce 34
+	GE_OP  reduce 34
+	EQUAL_OP  reduce 34
+	NEQUAL_OP  reduce 34
+	AND_OP  reduce 34
+	OR_OP  reduce 34
+	'>'  reduce 34
+	'<'  reduce 34
+	')'  reduce 34
+
+
+state 67
+	Logical_Expression : Logical_Expression AND_OP add_expr .  (27)
+	add_expr : add_expr . '+' mul_expr  (37)
+	add_expr : add_expr . '-' mul_expr  (38)
+
+	'+'  shift 42
+	'-'  shift 43
+	LE_OP  reduce 27
+	GE_OP  reduce 27
+	EQUAL_OP  reduce 27
+	NEQUAL_OP  reduce 27
+	AND_OP  reduce 27
+	OR_OP  reduce 27
+	'>'  reduce 27
+	'<'  reduce 27
+	')'  reduce 27
+
+
+state 68
+	Logical_Expression : Logical_Expression OR_OP add_expr .  (26)
+	add_expr : add_expr . '+' mul_expr  (37)
+	add_expr : add_expr . '-' mul_expr  (38)
+
+	'+'  shift 42
+	'-'  shift 43
+	LE_OP  reduce 26
+	GE_OP  reduce 26
+	EQUAL_OP  reduce 26
+	NEQUAL_OP  reduce 26
+	AND_OP  reduce 26
+	OR_OP  reduce 26
+	'>'  reduce 26
+	'<'  reduce 26
+	')'  reduce 26
+
+
+state 69
+	Logical_Expression : Logical_Expression '>' add_expr .  (31)
+	add_expr : add_expr . '+' mul_expr  (37)
+	add_expr : add_expr . '-' mul_expr  (38)
+
+	'+'  shift 42
+	'-'  shift 43
+	LE_OP  reduce 31
+	GE_OP  reduce 31
+	EQUAL_OP  reduce 31
+	NEQUAL_OP  reduce 31
+	AND_OP  reduce 31
+	OR_OP  reduce 31
+	'>'  reduce 31
+	'<'  reduce 31
+	')'  reduce 31
+
+
+state 70
+	Logical_Expression : Logical_Expression '<' add_expr .  (29)
+	add_expr : add_expr . '+' mul_expr  (37)
+	add_expr : add_expr . '-' mul_expr  (38)
+
+	'+'  shift 42
+	'-'  shift 43
+	LE_OP  reduce 29
+	GE_OP  reduce 29
+	EQUAL_OP  reduce 29
+	NEQUAL_OP  reduce 29
+	AND_OP  reduce 29
+	OR_OP  reduce 29
+	'>'  reduce 29
+	'<'  reduce 29
+	')'  reduce 29
+
+
+state 71
 	start_point : TYPESPEC IDENTIFIER $$1 '(' ')' '{' xdecls stmts RETURN CONSTANT ';' '}' .  (2)
 
 	.  reduce 2
 
 
+state 72
+	Compound_Statement : '{' . $$4 xdecls $$5 stmt_list '}'  (23)
+	$$4 : .  (21)
+
+	.  reduce 21
+
+	$$4  goto 74
+
+
+state 73
+	IF_Statement : IF '(' Expression ')' $$2 Compound_Statement . Selection_Statement_Tail  (17)
+	Selection_Statement_Tail : .  (18)
+
+	ELSE  shift 75
+	IDENTIFIER  reduce 18
+	IF  reduce 18
+	RETURN  reduce 18
+	'}'  reduce 18
+
+	Selection_Statement_Tail  goto 76
+
+
+state 74
+	Compound_Statement : '{' $$4 . xdecls $$5 stmt_list '}'  (23)
+	xdecls : .  (3)
+
+	TYPESPEC  shift 8
+	IDENTIFIER  reduce 3
+	IF  reduce 3
+	'}'  reduce 3
+
+	xdecls  goto 77
+	decls  goto 10
+	decl  goto 11
+
+
+state 75
+	Selection_Statement_Tail : ELSE . $$3 Compound_Statement  (20)
+	$$3 : .  (19)
+
+	.  reduce 19
+
+	$$3  goto 78
+
+
+state 76
+	IF_Statement : IF '(' Expression ')' $$2 Compound_Statement Selection_Statement_Tail .  (17)
+
+	.  reduce 17
+
+
+state 77
+	Compound_Statement : '{' $$4 xdecls . $$5 stmt_list '}'  (23)
+	$$5 : .  (22)
+
+	.  reduce 22
+
+	$$5  goto 79
+
+
+state 78
+	Selection_Statement_Tail : ELSE $$3 . Compound_Statement  (20)
+
+	'{'  shift 72
+	.  error
+
+	Compound_Statement  goto 80
+
+
+state 79
+	Compound_Statement : '{' $$4 xdecls $$5 . stmt_list '}'  (23)
+	stmt_list : .  (10)
+
+	IDENTIFIER  shift 14
+	IF  shift 15
+	'}'  reduce 10
+
+	simple_stmt  goto 16
+	stmts  goto 81
+	stmt_list  goto 82
+	stmt  goto 18
+	IF_Statement  goto 19
+
+
+state 80
+	Selection_Statement_Tail : ELSE $$3 Compound_Statement .  (20)
+
+	.  reduce 20
+
+
+state 81
+	stmt_list : stmts .  (11)
+	stmts : stmts . stmt  (13)
+
+	IDENTIFIER  shift 14
+	IF  shift 15
+	'}'  reduce 11
+
+	simple_stmt  goto 16
+	stmt  goto 26
+	IF_Statement  goto 19
+
+
+state 82
+	Compound_Statement : '{' $$4 xdecls $$5 stmt_list . '}'  (23)
+
+	'}'  shift 83
+	.  error
+
+
+state 83
+	Compound_Statement : '{' $$4 xdecls $$5 stmt_list '}' .  (23)
+
+	.  reduce 23
+
+
 Rules never reduced:
-	primary : IDENTIFIER  (22)
-	primary : CONSTANT  (23)
+	primary : IDENTIFIER  (45)
+	primary : CONSTANT  (46)
 
 
-70 terminals, 15 nonterminals
-24 grammar rules, 43 states
+86 terminals, 25 nonterminals
+47 grammar rules, 84 states

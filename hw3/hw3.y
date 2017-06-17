@@ -67,7 +67,17 @@ FILE *f_asm;
 %left  <charv> ','
 %right <charv> '='
 %right <token> ASSIGN
- 
+
+
+%left <token> PLUSPLUS_OP MINUSMINUS_OP
+%left <token> MUL_OP DIV_OP MOD_OP
+%left <token> MINUS_OP PLUS_OP
+%left <token> LT_OP LE_OP GT_OP GE_OP EQUAL_OP NEQUAL_OP
+%left <token> NOT_OP
+%left <token> AND_OP
+%left <token> OR_OP
+
+
 %left <charv> OROR
 %left <charv> ANDAND
 %left <token> '!'
@@ -124,28 +134,36 @@ decl:
 notype_declarator:
 	IDENTIFIER '=' INT_CONSTANT
 			{   
-				install_symbol($1);
-				int index = look_up_symbol($1);
-				
-				table[index].offset = LocalOffset++;
-                table[index].mode  = LOCAL_MODE;
-				
-				fprintf(f_asm, "    lwi $r0, [$sp+0]\n");
-                fprintf(f_asm, "    addi $sp, $sp, 4\n");
-				fprintf(f_asm, "    swi $r0, [$fp-%d]\n",table[index].offset*4);
+                          install_symbol($1);
+                          int index = look_up_symbol($1);
+
+                          /* Setting, use set_local_vars will be too late */
+                          table[index].offset = LocalOffset++;
+                          table[index].mode  = LOCAL_MODE;
+
+                          /* Pop Expression to $r0 */
+                          PopReg(0);
+
+                          /* Store it to var */
+                          fprintf(f_asm, "    swi $r0, [$sp+%d]\n",table[index].offset*4);
 				
 			}
 	;
 	
-INT_CONSTANT:
+INT_CONSTANT:	
 	CONSTANT 	{
-					$$ = NULL;
-					fprintf(f_asm, "    movi $r0, %d\n",$1);
-                    fprintf(f_asm, "    addi $sp, $sp, -4\n");
-                    fprintf(f_asm, "    swi $r0, [$sp+0]\n");
+							$$ = NULL;
+                            /* Move num to $r0 and push to stack */
+                            fprintf(f_asm, "    movi $r0, %d\n",$1);
+                            PushReg(0);
 				}
 	;
-	
+
+stmt_list:
+	// null {}
+	| stmts {}
+	;
+
 stmts:
 	stmt
                { if (TRACEON) printf("29 ") ;  }
@@ -154,22 +172,154 @@ stmts:
 	;
 	
 stmt:
-	simple_stmt
-	{
-        }
+	simple_stmt{}
+	|	 IF_Statement{}
 	;
 	
+IF_Statement:   IF '(' Expression ')'
+                        {
+                            /* Pop expression to r0 */
+                            PopReg(0);
+
+                            fprintf(f_asm, "    beqz $r0, .L%d\n", LabelNum);
+                            /* If true, continue to compound statment */
+                        }
+                Compound_Statement Selection_Statement_Tail	
+
+Selection_Statement_Tail:    /* empty, only if */
+                             {
+                                 /* If false, ignore the compound statement. Branch to End */
+                                 fprintf(f_asm, ".L%d:\n", LabelNum);
+                                 LabelNum++;
+                             }
+                        |    ELSE
+                             {
+                                 /* If true, after compound statement. Must ignore else and branch to End */
+                                 fprintf(f_asm, "    j .L%d\n", LabelNum+1);
+
+                                 /* If false, ignore the compound statement. Branch to ELSE */
+                                 fprintf(f_asm, ".L%d:\n", LabelNum);
+                             }
+                             Compound_Statement
+                             {
+                                 /* End */
+                                 fprintf(f_asm, ".L%d:\n", LabelNum+1);
+                                 LabelNum += 2;
+                             }
+                        ;
+				
+Compound_Statement:   '{'
+                      {
+                          cur_scope++;
+                          //LocalOffset = 0;
+                      }
+                      xdecls
+                      {
+						
+                      }
+                      stmt_list '}'
+                      {
+                          cur_scope--;
+                      }
+                  ;		
+				
+		
+Expression:   Logical_Expression
+          ;
+	
+Logical_Expression:
+		add_expr
+		{}
+	|	Logical_Expression OR_OP add_expr	
+		{
+                              PopReg(0);
+                              PopReg(1);
+                              fprintf(f_asm, "    or $r0, $r0, $r1\n");
+                              PushReg(0);
+		}
+	|	Logical_Expression AND_OP add_expr	
+		{
+                               PopReg(0);
+                               PopReg(1);
+                               fprintf(f_asm, "    and $r0, $r0, $r1\n");
+                               PushReg(0);
+		}
+	|	NOT_OP Logical_Expression	
+		{
+								PopReg(0);
+							   fprintf(f_asm, "    addi $r0, $r0, 0\n"); /* ??? */
+							   fprintf(f_asm, "    slti $r0, $r0, 1\n");
+							   fprintf(f_asm, "    zeb $r0, $r0\n");
+							   PushReg(0);
+		}
+	|	Logical_Expression '<' add_expr	
+		{
+                              PopReg(0);
+                              PopReg(1);
+                              fprintf(f_asm, "    slts $r0, $r1, $r0\n");
+                              fprintf(f_asm, "    zeb $r0, $r0\n");
+                              PushReg(0);
+		}
+	|	Logical_Expression LE_OP  add_expr	
+		{
+                              PopReg(0);
+                              PopReg(1);
+                              fprintf(f_asm, "    slts $r0, $r0, $r1\n"); /* $r1 > $r0 ? */
+                              fprintf(f_asm, "    xori $r0, $r0, 1\n"); /* if $r0 == 1, $r0 = 0 */
+                              fprintf(f_asm, "    zeb $r0, $r0\n");
+                              PushReg(0);
+		}
+	|	Logical_Expression '>'   add_expr	
+		{
+                              PopReg(0);
+                              PopReg(1);
+                              fprintf(f_asm, "    slts $r0, $r0, $r1\n");
+                              fprintf(f_asm, "    zeb $r0, $r0\n");
+                              PushReg(0);
+		}
+	|	Logical_Expression GE_OP   add_expr	
+		{
+                               PopReg(0);
+                              PopReg(1);
+                              fprintf(f_asm, "    slts $r0, $r1, $r0\n"); /* $r1 < $r0 ? */
+                              fprintf(f_asm, "    xori $r0, $r0, 1\n"); /* if $r0 == 1, $r0 = 0 */
+                              fprintf(f_asm, "    zeb $r0, $r0\n");
+                              PushReg(0);
+		}
+	|	Logical_Expression EQUAL_OP   add_expr	
+		{
+                              PopReg(0);
+                              PopReg(1);
+                              fprintf(f_asm, "    xor $r0, $r0, $r1\n"); /* If $r0 == $r1 , then result of xor will be 0 --> < 1 */
+                              fprintf(f_asm, "    slti $r0, $r0, 1\n");
+                              fprintf(f_asm, "    zeb $r0, $r0\n");
+                              PushReg(0);
+		}
+	|	Logical_Expression NEQUAL_OP   add_expr	
+		{
+                              PopReg(0);
+                              PopReg(1);
+                              fprintf(f_asm, "    xor $r0, $r0, $r1\n"); /* If $r0 != $r1 , then result of xor will be > 0 */
+                              fprintf(f_asm, "    movi $r1, 0\n");
+                              fprintf(f_asm, "    slt $r0, $r1, $r0\n");
+                              fprintf(f_asm, "    zeb $r0, $r0\n");
+                              PushReg(0);
+		}
+	;
+		
+
+		  
+
 simple_stmt:
 	IDENTIFIER '=' add_expr ';'
 		{
-			int index = look_up_symbol($1);
+                         int index = look_up_symbol($1);
 
-            /* Pop Expression to $r0 */
-            fprintf(f_asm, "    lwi $r0, [$sp+0]\n");
-            fprintf(f_asm, "    addi $sp, $sp, 4\n");
+                         /* Pop Expression to $r0 */
+                         PopReg(0);
 
-            /* Store it to var */
-            fprintf(f_asm, "    swi $r0, [$fp-%d]\n",table[index].offset*4);
+                         /* Store it to var */
+                         fprintf(f_asm, "    swi $r0, [$sp+%d]\n",table[index].offset*4);
 		}
 	;
 	
@@ -180,25 +330,17 @@ add_expr:
 		}
 	| add_expr '+' mul_expr
 		{
-			fprintf(f_asm, "    lwi $r0, [$sp+0]\n");
-			fprintf(f_asm, "    lwi $r1, [$sp+4]\n");
-			fprintf(f_asm, "    addi $sp, $sp, 8\n");
-
-			fprintf(f_asm, "    add $r0, $r1, $r0\n");
-
-			fprintf(f_asm, "    addi $sp, $sp, -4\n");
-			fprintf(f_asm, "    swi $r0, [$sp+0]\n");
+                            PopReg(0);
+                            PopReg(1);
+                            fprintf(f_asm, "    add $r0, $r1, $r0\n");
+                            PushReg(0);
 		}
 	| add_expr '-' mul_expr
 		{
-			fprintf(f_asm, "    lwi $r0, [$sp+0]\n");
-			fprintf(f_asm, "    lwi $r1, [$sp+4]\n");
-			fprintf(f_asm, "    addi $sp, $sp, 8\n");
-
-			fprintf(f_asm, "    sub $r0, $r1, $r0\n");
-
-			fprintf(f_asm, "    addi $sp, $sp, -4\n");
-			fprintf(f_asm, "    swi $r0, [$sp+0]\n");
+                            PopReg(0);
+                            PopReg(1);
+                            fprintf(f_asm, "    sub $r0, $r1, $r0\n");
+                            PushReg(0);
 		}
 	;
 
@@ -209,57 +351,51 @@ mul_expr:
 		}
 	|	mul_expr '*' primary_expr
 		{
-            fprintf(f_asm, "    lwi $r0, [$sp+0]\n");
-            fprintf(f_asm, "    lwi $r1, [$sp+4]\n");
-            fprintf(f_asm, "    addi $sp, $sp, 8\n");
-
-            fprintf(f_asm, "    mul $r0, $r1, $r0\n");
-
-            fprintf(f_asm, "    addi $sp, $sp, -4\n");
-            fprintf(f_asm, "    swi $r0, [$sp+0]\n");		
+                                  PopReg(0);
+                                  PopReg(1);
+                                  fprintf(f_asm, "    mul $r0, $r1, $r0\n");
+                                  PushReg(0);	
 		}
 	|	mul_expr '/' primary_expr
 		{
-            fprintf(f_asm, "    lwi $r2, [$sp+0]\n");
-            fprintf(f_asm, "    lwi $r3, [$sp+4]\n");
-            fprintf(f_asm, "    addi $sp, $sp, 8\n");
-
-            fprintf(f_asm, "    divsr $r0, $r1, $r3, $r2\n");
-
-            fprintf(f_asm, "    addi $sp, $sp, -4\n");
-            fprintf(f_asm, "    swi $r0, [$sp+0]\n");		
+                                  PopReg(2);
+                                  PopReg(3);
+                                  fprintf(f_asm, "    divsr $r0, $r1, $r3, $r2\n");
+                                  PushReg(0);
 		}
 	;
 	
 primary_expr:
 	IDENTIFIER
 		{
-			int index = look_up_symbol($1);
+                                 int index = look_up_symbol($1);
 
-            /* Load to r0 */
-             switch(table[index].mode)
-                {
-                    case ARGUMENT_MODE:
-                            fprintf(f_asm, "    lwi $r0, [$sp+%d]\n",table[index].offset*4);
-                            break;
-                    case LOCAL_MODE:
-                            fprintf(f_asm, "    lwi $r0, [$fp-%d]\n",table[index].offset*4);
-                            break;
-                     /* global */
-                            }
+                                 /* Load to r0 */
+                                 switch(table[index].mode)
+                                 {
+                                     case ARGUMENT_MODE:
+                                         fprintf(f_asm, "    lwi $r0, [$sp+%d]\n",table[index].offset*4);
+                                         break;
+                                     case LOCAL_MODE:
+                                         fprintf(f_asm, "    lwi $r0, [$sp+%d]\n",table[index].offset*4);
+                                         break;
+                                     /* global */
+                                 }
 
-            /* Push to stack */
-             fprintf(f_asm, "    addi $sp, $sp, -4\n");
-             fprintf(f_asm, "    swi $r0, [$sp+0]\n");
+                                 /* Push to stack */
+                                 PushReg(0);
 		}
 	|	CONSTANT 
 		{
-			$$ = NULL;
+                                $$ = NULL;
 
-            /* Move num to $r0 and push to stack */
-            fprintf(f_asm, "    movi $r0, %d\n",$1);
-            fprintf(f_asm, "    addi $sp, $sp, -4\n");
-            fprintf(f_asm, "    swi $r0, [$sp+0]\n");
+                                /* Move num to $r0 and push to stack */
+                                fprintf(f_asm, "    movi $r0, %d\n",$1);
+                                PushReg(0);
+		}
+	 |    '(' Expression ')'
+		{
+		
 		}
 		;
 	
