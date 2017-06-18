@@ -174,7 +174,31 @@ stmts:
 stmt:
 	simple_stmt{}
 	|	 IF_Statement{}
+	|	 While_Statement{}
 	;
+
+While_Statement:
+                        WHILE
+                        {
+                            /* Label for checking expression */
+                            fprintf(f_asm, ".L%d:\n", LabelNum);
+                        }
+                        '(' Expression ')'
+                        {
+                            /* Pop expression, if false go to end */
+                            PopReg(0);
+                            fprintf(f_asm, "    beqz $r0, .L%d\n", LabelNum+1);
+                        }
+                        Compound_Statement
+                        {
+                            /* Jump back to check expression */
+                            fprintf(f_asm, "    j .L%d\n", LabelNum);
+
+                            /* End , if false , branch to here */
+                            fprintf(f_asm, ".L%d:\n", LabelNum+1);
+                            LabelNum += 2;
+                        }
+	
 	
 IF_Statement:   IF '(' Expression ')'
                         {
@@ -431,7 +455,7 @@ int main(void) {
 		  }
 		  
   printf("No syntax error!\n");
-  printTable();	
+  //	printTable();	
   
   fclose(f_asm);
   return 0;

@@ -65,43 +65,57 @@ _Z4loopv:
 	push.s	{ $lp }
 	addi	$sp, $sp, -48
 	! END PROLOGUE
-    movi $r0, 2000
+    movi $r0, 1
     swi $r0, [$sp+24]
     lwi $r0, [$sp+24]
     swi $r0, [$sp+0]
+.L2:
     lwi $r0, [$sp+0]
     swi $r0, [$sp+24]
-    movi $r0, 2000
+    movi $r0, 10
     swi $r0, [$sp+28]
     lwi $r0, [$sp+28]
     lwi $r1, [$sp+24]
-    slts $r0, $r0, $r1
+    slts $r0, $r1, $r0
     zeb $r0, $r0
     swi $r0, [$sp+24]
     lwi $r0, [$sp+24]
-    beqz $r0, .L2
+    beqz $r0, .L3
+    movi $r0, 0
+    swi $r0, [$sp+24]
+    lwi $r0, [$sp+24]
+    swi $r0, [$sp+4]
+    lwi $r0, [$sp+0]
+    swi $r0, [$sp+24]
+    movi $r0, 1000
+    swi $r0, [$sp+28]
+    lwi $r0, [$sp+28]
+    lwi $r1, [$sp+24]
+    mul $r0, $r1, $r0
+    swi $r0, [$sp+24]
+    lwi $r0, [$sp+24]
+    swi $r0, [$sp+4]
     movi $r0, 13
     movi $r1, 1
     bal digitalWrite
-    lwi $r0, [$sp+0]
+    lwi $r0, [$sp+4]
     bal delay
     movi $r0, 13
     movi $r1, 0
     bal digitalWrite
-    lwi $r0, [$sp+0]
+    lwi $r0, [$sp+4]
     bal delay
-    j .L3
-.L2:
-    movi $r0, 13
-    movi $r1, 1
-    bal digitalWrite
     lwi $r0, [$sp+0]
-    bal delay
-    movi $r0, 13
-    movi $r1, 0
-    bal digitalWrite
-    lwi $r0, [$sp+0]
-    bal delay
+    swi $r0, [$sp+24]
+    movi $r0, 1
+    swi $r0, [$sp+28]
+    lwi $r0, [$sp+28]
+    lwi $r1, [$sp+24]
+    add $r0, $r1, $r0
+    swi $r0, [$sp+24]
+    lwi $r0, [$sp+24]
+    swi $r0, [$sp+0]
+    j .L2
 .L3:
 	! BEGIN EPILOGUE
 	addi	$sp, $sp, 48
