@@ -246,7 +246,7 @@ Logical_Expression:
 		}
 	|	NOT_OP Logical_Expression	
 		{
-								PopReg(0);
+							   PopReg(0);
 							   fprintf(f_asm, "    addi $r0, $r0, 0\n"); /* ??? */
 							   fprintf(f_asm, "    slti $r0, $r0, 1\n");
 							   fprintf(f_asm, "    zeb $r0, $r0\n");
